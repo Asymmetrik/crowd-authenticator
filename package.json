@@ -1,13 +1,13 @@
 {
-	"name": "@asymmetrik/node-module-template",
-	"description": "Node Module Template Project",
-	"version": "0.1.0",
+	"name": "@asymmetrik/crowd-authenticator",
+	"description": "Pluggable Crowd authenticator",
+	"version": "0.0.0",
 	"author": "Asymmetrik, Ltd.",
 	"copyright": "Copyright Asymmetrik, Ltd. 2007-2017 - All Rights Reserved.",
-	"license": "UNLICENSED",
+	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/asymmetrik/node-module-template.git"
+		"url": "https://github.com/asymmetrik/crowd-authenticator.git"
 	},
 	"engines": {
 		"node": "6.9",
@@ -16,10 +16,11 @@
 	"scripts": {
 		"test": "gulp test-ci",
 		"dev": "gulp dev",
-		"dev-test": "gulp dev-test"
+		"dev-test": "gulp dev-test",
+		"dev-test-all": "gulp dev-test-all"
 	},
 	"dependencies": {
-		"weighted-random-object": "1.0.6"
+		"atlassian-crowd-client": "1.3"
 	},
 	"peerDependencies": { },
 	"devDependencies": {
