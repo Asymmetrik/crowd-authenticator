@@ -9,7 +9,9 @@ let
 
 let allSrc  = './src/**/*.js';
 let testSrc = './src/**.spec.js';
-let libSrc  = [ allSrc, `!${testSrc}` ];
+let e2eSrc  = './src/**.spec.e2e.js';
+
+let libSrc  = [ allSrc, `!${testSrc}`, `!${e2eSrc}` ];
 let allJs   = [ './gulpfile.js', allSrc ];
 
 
@@ -21,6 +23,7 @@ let allJs   = [ './gulpfile.js', allSrc ];
 
 gulp.task('watch-build', (done) => { gulp.watch(allSrc, [ 'build' ]); });
 gulp.task('watch-test', (done) => { gulp.watch(allSrc, [ 'test' ]); });
+gulp.task('watch-test-all', (done) => { gulp.watch(allSrc, [ 'test-all' ]); });
 
 /**
  * --------------------------
@@ -50,6 +53,13 @@ gulp.task('run-tests-ci', [ 'build-ci', 'coverage-init' ], () => {
 		.pipe(plugins.istanbul.writeReports({
 			reporters: [ 'text-summary', 'lcov' ]
 		}));
+
+});
+
+gulp.task('run-tests-e2e', [ 'build' ], () => {
+
+	return gulp.src(e2eSrc)
+		.pipe(plugins.mocha());
 
 });
 
@@ -115,7 +125,18 @@ gulp.task('dev-test', (done) => {
 	runSequence([ 'watch-test', 'test' ], done);
 });
 
+/**
+ * dev-test-all - Development task to run all tests (unit + e2e) and watch
+ */
+gulp.task('dev-test-all', (done) => {
+	runSequence([ 'watch-test-all', 'test-all' ], done);
+});
+
+// Helper task to directly run the tests
 gulp.task('test', [ 'run-tests' ]);
+
+// Helper task to run e2e and unit tests in sequence
+gulp.task('test-all', (done) => { runSequence( 'run-tests', 'run-tests-e2e', done); });
 
 /**
  * build-ci - Builds all source in ci-mode, which fails on error

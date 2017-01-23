@@ -1,27 +1,21 @@
-# @asymmetrik/node-module-template
+# @asymmetrik/crowd-authenticator
 
-[![Build Status](https://travis-ci.org/Asymmetrik/node-module-template.svg)](https://travis-ci.org/Asymmetrik/node-module-template)
-[![Code Climate](https://codeclimate.com/github/Asymmetrik/node-module-template/badges/gpa.svg)](https://codeclimate.com/github/Asymmetrik/node-module-template)
-[![Test Coverage](https://codeclimate.com/github/Asymmetrik/node-module-template/badges/coverage.svg)](https://codeclimate.com/github/Asymmetrik/node-module-template/coverage)
+[![Build Status](https://travis-ci.org/Asymmetrik/crowd-authenticator.svg)](https://travis-ci.org/Asymmetrik/crowd-authenticator)
+[![Code Climate](https://codeclimate.com/github/Asymmetrik/crowd-authenticator/badges/gpa.svg)](https://codeclimate.com/github/Asymmetrik/crowd-authenticator)
+[![Test Coverage](https://codeclimate.com/github/Asymmetrik/crowd-authenticator/badges/coverage.svg)](https://codeclimate.com/github/Asymmetrik/crowd-authenticator/coverage)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-> Template project for a node module
+> Pluggable authenticator for Atlassian Crowd.
+> The authenticator mostly wraps the logic necessary to sync Crowd with an external authentication system.
 
 ## Table of Contents
 
-- [Use](#use)
 - [Install](#install)
 - [Usage](#usage)
 - [API](#api)
 - [Contribute](#contribute)
 - [License](#license)
 
-## Use
-To use this template, clone it, rename the ```origin``` remote to something else like ```template```. Then, add the new repo as origin. Once you've done this, it will be easier to merge in changes to the template into your project.
-
-A second option is to clone this repo, delete the ```./.git``` directory, and then push it to your own repo.
-
-See the gulpfile for tasks related to building the module.
 
 ## Install
 
@@ -30,7 +24,7 @@ Include this module as a dependency of your application in the `package.json` fi
 {
   ...
   dependencies: {
-    "@asymmetrik/node-module-template": "latest"
+    "@asymmetrik/crowd-authenticator": "latest"
   }
   ...
 }
@@ -40,7 +34,50 @@ Include this module as a dependency of your application in the `package.json` fi
 
 Include the module via `require` wherever applicable:
 ```
-var nodeModuleTemplate = require('@asymmetrik/node-module-template');
+let CrowdAuthenticator = require('@asymmetrik/crowd-authenticator');
+let CrowdClient = require('atlassian-crowd-client');
+
+// Create the crowd client
+let crowdClient = new CrowdClient({
+	baseUrl: 'http://localhost:8095/crowd/',
+	application: {
+		name: 'crowd-authenticator',
+		password: 'password'
+	}
+});
+
+// Create a custom config
+let config = {
+	passwordStrategy: () => { return Promise.resolve('password'); },
+	groupPrefix: 'prefix:',
+	defaultGroups: [ 'jira-user', 'confluence-user' ]
+};
+
+// Create the pluggable authentication strategy
+let authStrategy = {
+	getAuthInfo: (authId) => {
+		return new Promise((resolve) => {
+			resolve({
+				firstname: 'Test',
+				lastname: 'User',
+				displayname: 'Test User',
+				email: 'test@email.com',
+				username: authId,
+				groups: [ 'one', 'two' ]
+			});
+		});
+	}
+};
+
+// Create the authenticator instance
+let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy, config);
+
+// Authenticate
+crowdAuthenticator.authenticate('test')
+	.then((session) => {
+		// session contains token and expiration information
+	);
+
 ```
 
 ## API
