@@ -9,6 +9,26 @@ function allSettled(promise) {
 		(err) => { return { error: err, status: 'rejected' }; });
 }
 
+function nodePromiseResolver() {
+	let toResolve, toReject;
+	let promise = new Promise((resolve, reject) => {
+		toResolve = resolve;
+		toReject = reject;
+	});
+
+	return {
+		nodeResolver: (err, val) => {
+			if(null != err) {
+				toReject(err);
+			}
+			else {
+				toResolve(val);
+			}
+		},
+		promise: promise
+	};
+}
+
 function initializeConfig(config) {
 	config = config || {};
 	config.passwordStrategy = config.passwordStrategy || defaultPasswordStrategy;
@@ -19,16 +39,13 @@ function initializeConfig(config) {
 }
 
 function defaultPasswordStrategy() {
-	return new Promise((resolve, reject) => {
-		crypto.randomBytes(16, (ex, buf) => {
-			if(null != ex) {
-				reject(ex);
-			}
-			else {
-				resolve(buf.toString('hex'));
-			}
-		});
-	});
+	return Promise.resolve()
+		.then(() => {
+			let nodePromise = nodePromiseResolver();
+			crypto.randomBytes(16, nodePromise.nodeResolver);
+			return nodePromise.promise;
+		})
+		.then((buf) => { return buf.toString('hex'); });
 }
 
 function subtractLists(aList, bList) {
@@ -87,58 +104,50 @@ module.exports = function(crowdClient, authStrategy, config) {
 
 	let syncCrowdUserGroups = (crowdUserInfo) => {
 
-		return new Promise((resolve, reject) => {
+		// Get all of the user groups from crowd
+		return crowdClient.user.groups.list(crowdUserInfo.username)
+			.then((groups) => {
 
-			// Get all of the user groups from crowd
-			crowdClient.user.groups.list(crowdUserInfo.username)
-				.then((groups) => {
+				let crowdGroups = groups || [];
+				let authGroups = crowdUserInfo.groups || [];
 
-					let crowdGroups = groups || [];
-					let authGroups = crowdUserInfo.groups || [];
+				let crowdAuthGroups = crowdGroups.filter((g) => { return g.startsWith(config.groupPrefix); });
+				authGroups = authGroups.map((g) => { return `${config.groupPrefix}${g}`; });
 
-					let crowdAuthGroups = crowdGroups.filter((g) => { return g.startsWith(config.groupPrefix); });
-					authGroups = authGroups.map((g) => { return `${config.groupPrefix}${g}`; });
+				let defaultGroups = config.defaultGroups;
 
-					let defaultGroups = config.defaultGroups;
+				let toRemove = [];
+				let toAdd = [];
 
-					let toRemove = [];
-					let toAdd = [];
+				// Need to remove crowdGroups that start with the prefix but aren't in the authGroups list
+				toRemove = toRemove.concat(subtractLists(crowdAuthGroups, authGroups));
 
-					// Need to remove crowdGroups that start with the prefix but aren't in the authGroups list
-					toRemove = toRemove.concat(subtractLists(crowdAuthGroups, authGroups));
+				// Need to add auth groups that are not in crowdGroups
+				toAdd = toAdd.concat(subtractLists(authGroups, crowdGroups));
 
-					// Need to add auth groups that are not in crowdGroups
-					toAdd = toAdd.concat(subtractLists(authGroups, crowdGroups));
+				// Need to add default groups that are not in crowd groups
+				toAdd = toAdd.concat(subtractLists(defaultGroups, crowdGroups));
 
-					// Need to add default groups that are not in crowd groups
-					toAdd = toAdd.concat(subtractLists(defaultGroups, crowdGroups));
+				// We need to ensure all the toAdd groups exist
+				let createGroupsPromises = toAdd.map((g) => {
+					return crowdClient.group.create(new Group(g));
+				});
 
-					// We need to ensure all the toAdd groups exist
-					let createGroupsPromises = toAdd.map((g) => {
-						return crowdClient.group.create(new Group(g));
+				// First run all the promises to create the groups
+				return Promise.all(createGroupsPromises.map(allSettled))
+					.then(() => {
+
+						let addGroupPromises = toAdd.map((g) => {
+							return crowdClient.user.groups.add(crowdUserInfo.username, g);
+						});
+						addGroupPromises = addGroupPromises.concat(toRemove.map((g) => {
+							return crowdClient.user.groups.remove(crowdUserInfo.username, g);
+						}));
+
+						return Promise.all(addGroupPromises.map(allSettled));
 					});
 
-					// First run all the promises to create the groups
-					return Promise.all(createGroupsPromises.map(allSettled))
-						.then(() => {
-
-							let addGroupPromises = toAdd.map((g) => {
-								return crowdClient.user.groups.add(crowdUserInfo.username, g);
-							});
-							addGroupPromises = addGroupPromises.concat(toRemove.map((g) => {
-								return crowdClient.user.groups.remove(crowdUserInfo.username, g);
-							}));
-
-							return Promise.all(addGroupPromises.map(allSettled));
-						});
-
-				})
-				.then((results) => {
-					resolve();
-				})
-				.catch((err) => { reject(err); });
-
-		});
+			});
 
 	};
 
@@ -186,6 +195,7 @@ module.exports = function(crowdClient, authStrategy, config) {
 		},
 
 		allSettled: allSettled,
+		nodePromiseResolver: nodePromiseResolver,
 		initializeConfig: initializeConfig,
 		defaultPasswordStrategy: defaultPasswordStrategy,
 		subtractLists: subtractLists,
