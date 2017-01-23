@@ -279,6 +279,42 @@ describe('Crowd Authenticator', () => {
 			});
 		});
 
+		describe('denodeify', () => {
+			it('should resolve on success', () => {
+
+				let crowdAuthenticator = CrowdAuthenticator();
+				let nodePromise = crowdAuthenticator.nodePromiseResolver();
+
+				nodePromise.nodeResolver(null, 'Hello World');
+
+				return nodePromise.promise
+					.then((val) => {
+						should(val).equal('Hello World');
+					},
+					(err) => {
+						should.fail();
+					});
+			});
+		});
+
+		describe('nodePromise', () => {
+			it('should reject on error', () => {
+
+				let crowdAuthenticator = CrowdAuthenticator();
+				let nodePromise  = crowdAuthenticator.nodePromiseResolver();
+
+				nodePromise.nodeResolver('Error');
+
+				return nodePromise.promise
+					.then((val) => {
+							should.fail();
+						},
+						(err) => {
+							should(err).equal('Error');
+						});
+			});
+		});
+
 		describe('initializeConfig', () => {
 
 			let crowdAuthenticator = CrowdAuthenticator();
