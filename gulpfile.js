@@ -56,7 +56,7 @@ gulp.task('run-tests-ci', [ 'build-ci', 'coverage-init' ], () => {
 
 });
 
-gulp.task('run-tests-e2e', [ 'build-ci', 'coverage-init' ], () => {
+gulp.task('run-tests-e2e', [ 'build' ], () => {
 
 	return gulp.src(e2eSrc)
 		.pipe(plugins.mocha());

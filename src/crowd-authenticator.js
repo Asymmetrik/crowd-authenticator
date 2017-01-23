@@ -20,12 +20,12 @@ function initializeConfig(config) {
 
 function defaultPasswordStrategy() {
 	return new Promise((resolve, reject) => {
-		crypto.randomBytes(32, (ex, password) => {
+		crypto.randomBytes(16, (ex, buf) => {
 			if(null != ex) {
 				reject(ex);
 			}
 			else {
-				resolve(password);
+				resolve(buf.toString('hex'));
 			}
 		});
 	});
@@ -55,7 +55,7 @@ module.exports = function(crowdClient, authStrategy, config) {
 			.then((password) => {
 
 				// Create a new user
-				return new User(u.firstName, u.lastName, u.displayName,
+				return new User(u.firstname, u.lastname, u.displayname,
 					u.email, u.username, password,
 					true);
 
@@ -72,8 +72,10 @@ module.exports = function(crowdClient, authStrategy, config) {
 				if(null != err && err.type === 'USER_NOT_FOUND') {
 
 					// Create the user
-					let user = createCrowdUser(crowdUserInfo);
-					return crowdClient.user.create(user);
+					return createCrowdUser(crowdUserInfo)
+						.then((user) => {
+							return crowdClient.user.create(user);
+						});
 
 				}
 				// Any other error is terminal
@@ -116,23 +118,23 @@ module.exports = function(crowdClient, authStrategy, config) {
 						return crowdClient.group.create(new Group(g));
 					});
 
-					let addGroupPromises = toAdd.map((g) => {
-						return crowdClient.user.groups.add(crowdUserInfo.username, g);
-					});
-					addGroupPromises = addGroupPromises.concat(toRemove.map((g) => {
-						return crowdClient.user.groups.remove(crowdUserInfo.username, g);
-					}));
-
-
 					// First run all the promises to create the groups
 					return Promise.all(createGroupsPromises.map(allSettled))
 						.then(() => {
+
+							let addGroupPromises = toAdd.map((g) => {
+								return crowdClient.user.groups.add(crowdUserInfo.username, g);
+							});
+							addGroupPromises = addGroupPromises.concat(toRemove.map((g) => {
+								return crowdClient.user.groups.remove(crowdUserInfo.username, g);
+							}));
+
 							return Promise.all(addGroupPromises.map(allSettled));
 						});
 
 				})
 				.then((results) => {
-					resolve(results);
+					resolve();
 				})
 				.catch((err) => { reject(err); });
 
@@ -151,7 +153,7 @@ module.exports = function(crowdClient, authStrategy, config) {
 
 			// Validate the authId
 			if(null == authId) {
-				throw new Error('crowd-authenticator error: Must provide an authId');
+				return Promise.reject('crowd-authenticator error: Must provide an authId');
 			}
 
 			// Try to authenticate the user using the configure auth strategy
@@ -181,7 +183,15 @@ module.exports = function(crowdClient, authStrategy, config) {
 
 				});
 
-		}
+		},
+
+		allSettled: allSettled,
+		initializeConfig: initializeConfig,
+		defaultPasswordStrategy: defaultPasswordStrategy,
+		subtractLists: subtractLists,
+		createCrowdUser: createCrowdUser,
+		getOrCreateCrowdUser: getOrCreateCrowdUser,
+		syncCrowdUserGroups: syncCrowdUserGroups
 
 	};
 
