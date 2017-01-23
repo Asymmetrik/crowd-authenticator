@@ -196,9 +196,11 @@ module.exports = function(crowdClient, authStrategy, config) {
 
 		allSettled: allSettled,
 		nodePromiseResolver: nodePromiseResolver,
+
 		initializeConfig: initializeConfig,
 		defaultPasswordStrategy: defaultPasswordStrategy,
 		subtractLists: subtractLists,
+
 		createCrowdUser: createCrowdUser,
 		getOrCreateCrowdUser: getOrCreateCrowdUser,
 		syncCrowdUserGroups: syncCrowdUserGroups
