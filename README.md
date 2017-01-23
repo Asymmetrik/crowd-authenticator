@@ -82,6 +82,7 @@ crowdAuthenticator.authenticate('test')
 
 ## API
 
+See above Usage example.
 
 ## Contribute
 
