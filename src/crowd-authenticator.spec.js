@@ -6,22 +6,15 @@ describe('Crowd Authenticator', () => {
 
 	describe('authenticate', () => {
 
-		let authStrategy = {
-			getAuthInfo: (authId) => {
-				return new Promise((resolve, reject) => {
-					resolve({
-						firstname: 'Test',
-						lastname: 'User',
-						displayname: 'Test User',
-						email: 'test@email.com',
-						username: authId,
-						attributes: []
-					});
-				});
-			}
+		let crowdUserInfo = {
+			firstname: 'Test',
+			lastname: 'User',
+			displayname: 'Test User',
+			email: 'test@email.com',
+			username: 'test'
 		};
 
-		it('should error if there is no valid authId', () => {
+		it('should error if there is no valid Crowd UserInfo', () => {
 
 			let crowdAuthenticator = CrowdAuthenticator();
 			crowdAuthenticator.authenticate()
@@ -39,7 +32,7 @@ describe('Crowd Authenticator', () => {
 					get: () => { return Promise.resolve(); },
 					create: () => { return Promise.resolve(); },
 					groups: {
-						list: () => { return Promise.resolve([]); },
+						list: () => { return Promise.resolve(); },
 						add: () => { return Promise.resolve(); },
 						remove: () => { return Promise.resolve(); }
 					}
@@ -58,8 +51,8 @@ describe('Crowd Authenticator', () => {
 				}
 			};
 
-			let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy);
-			return crowdAuthenticator.authenticate('id1')
+			let crowdAuthenticator = CrowdAuthenticator(crowdClient);
+			return crowdAuthenticator.authenticate(crowdUserInfo)
 				.then((session) => {
 					should.exist(session);
 					should(session.token).equal('token');
@@ -70,21 +63,8 @@ describe('Crowd Authenticator', () => {
 
 	describe('Context Helpers', () => {
 
-		let authStrategy = {
-			getAuthInfo: (authId) => {
-				return new Promise((resolve, reject) => {
-					resolve({
-						firstname: 'Test',
-						lastname: 'User',
-						displayname: 'Test User',
-						email: 'test@email.com',
-						username: authId
-					});
-				});
-			}
-		};
-
 		describe('createCrowdUser', () => {
+
 			it('should create a valid User', () => {
 
 				let userSpec = {
@@ -129,7 +109,7 @@ describe('Crowd Authenticator', () => {
 					return Promise.resolve(crowdAuthenticator.createCrowdUser(userSpec));
 				};
 
-				let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy);
+				let crowdAuthenticator = CrowdAuthenticator(crowdClient);
 				return crowdAuthenticator.getOrCreateCrowdUser(userSpec)
 					.then((user) => {
 						should.exist(user);
@@ -153,7 +133,7 @@ describe('Crowd Authenticator', () => {
 					}
 				};
 
-				let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy);
+				let crowdAuthenticator = CrowdAuthenticator(crowdClient);
 				return crowdAuthenticator.getOrCreateCrowdUser(userSpec)
 					.then((user) => {
 						should(created).equal(true);
@@ -176,7 +156,7 @@ describe('Crowd Authenticator', () => {
 					}
 				};
 
-				let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy);
+				let crowdAuthenticator = CrowdAuthenticator(crowdClient);
 				return crowdAuthenticator.getOrCreateCrowdUser(userSpec)
 					.then(() => { should.fail(); },
 						(err) => { should.exist(err); });
@@ -236,7 +216,7 @@ describe('Crowd Authenticator', () => {
 				// toRemove - 'p:three'
 				// toCreate - 'p:one', 'default1'
 
-				let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy, config);
+				let crowdAuthenticator = CrowdAuthenticator(crowdClient, config);
 				return crowdAuthenticator.syncCrowdUserGroups(userSpec)
 					.then(() => {
 						should(addedGroups).have.length(2);
@@ -327,7 +307,7 @@ describe('Crowd Authenticator', () => {
 				should(config.defaultGroups).be.an.Array();
 			});
 
-			it('should leave along a provided config', () => {
+			it('should leave alone a provided config', () => {
 				let config = crowdAuthenticator.initializeConfig({
 					passwordStrategy: () => { return 'password'; },
 					groupPrefix: 'prefix',
@@ -357,6 +337,36 @@ describe('Crowd Authenticator', () => {
 					});
 			});
 
+		});
+
+		describe('validateCrowdUserInfo', () => {
+
+			it('should fail when required fields are missing', () => {
+
+				let crowdAuthenticator = CrowdAuthenticator();
+
+				should.exist(crowdAuthenticator.validateCrowdUserInfo());
+				should.exist(crowdAuthenticator.validateCrowdUserInfo({}));
+				should.exist(crowdAuthenticator.validateCrowdUserInfo({
+					username: 'test',
+					email: 'test@email.com'
+				}));
+				should.exist(crowdAuthenticator.validateCrowdUserInfo({
+					displayname: 'Test User',
+					email: 'test@email.com'
+				}));
+				should.exist(crowdAuthenticator.validateCrowdUserInfo({
+					displayname: 'Test User',
+					username: 'test'
+				}));
+
+				should.not.exist(crowdAuthenticator.validateCrowdUserInfo({
+					displayname: 'Test User',
+					username: 'test',
+					email: 'test@email.com'
+				}));
+
+			});
 		});
 
 		describe('subtractLists', () => {

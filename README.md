@@ -5,8 +5,8 @@
 [![Test Coverage](https://codeclimate.com/github/Asymmetrik/crowd-authenticator/badges/coverage.svg)](https://codeclimate.com/github/Asymmetrik/crowd-authenticator/coverage)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-> Pluggable authenticator for Atlassian Crowd.
-> The authenticator mostly wraps the logic necessary to sync Crowd with an external authentication system.
+> Authenticator for creating sessions with Atlassian Crowd.
+> The authenticator wraps the logic necessary to sync Crowd with an external authentication system.
 
 ## Table of Contents
 
@@ -53,29 +53,23 @@ let config = {
 	defaultGroups: [ 'jira-user', 'confluence-user' ]
 };
 
-// Create the pluggable authentication strategy
-let authStrategy = {
-	getAuthInfo: (authId) => {
-		return new Promise((resolve) => {
-			resolve({
-				firstname: 'Test',
-				lastname: 'User',
-				displayname: 'Test User',
-				email: 'test@email.com',
-				username: authId,
-				groups: [ 'one', 'two' ]
-			});
-		});
-	}
+// Create the authenticator instance
+let crowdAuthenticator = CrowdAuthenticator(crowdClient, config);
+
+let userInfo = {
+	firstname: 'Test',
+	lastname: 'User',
+	displayname: 'Test User',
+	email: 'test@email.com',
+	username: authId,
+	groups: [ 'one', 'two' ]
 };
 
-// Create the authenticator instance
-let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy, config);
-
 // Authenticate
-crowdAuthenticator.authenticate('test')
+crowdAuthenticator.authenticate(userInfo)
 	.then((session) => {
 		// session contains token and expiration information
+		// at this point, crowd will contain the defaultGroups plus all groups on the userInfo
 	);
 
 ```

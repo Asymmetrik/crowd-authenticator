@@ -61,8 +61,26 @@ function subtractLists(aList, bList) {
 
 }
 
+function validateCrowdUserInfo(userInfo) {
+	let err;
 
-module.exports = function(crowdClient, authStrategy, config) {
+	if (null == userInfo) {
+		err = 'Missing Crowd UserInfo object';
+	}
+	else if (null == userInfo.displayname) {
+		err = 'Missing Crowd UserInfo.displayname';
+	}
+	else if (null == userInfo.username) {
+		err = 'Missing Crowd UserInfo.username';
+	}
+	else if (null == userInfo.email) {
+		err = 'Missing Crowd UserInfo.email';
+	}
+
+	return (null == err) ? err : `Crowd Authenticator Error: ${err}`;
+}
+
+module.exports = function(crowdClient, config) {
 
 	config = initializeConfig(config);
 
@@ -158,34 +176,33 @@ module.exports = function(crowdClient, authStrategy, config) {
 		 * Main authenticate call
 		 * @param authRequest
 		 */
-		authenticate: function(authId) {
+		authenticate: function(crowdUserInfo) {
 
 			// Validate the authId
-			if(null == authId) {
-				return Promise.reject('crowd-authenticator error: Must provide an authId');
+			let err = validateCrowdUserInfo(crowdUserInfo);
+			if(null != err) {
+				return Promise.reject('crowd-authenticator error: Must provide a valid crowdUserInfo object');
 			}
 
 			// Try to authenticate the user using the configure auth strategy
-			return authStrategy.getAuthInfo(authId)
-				.then((crowdUserInfo) => {
+			return Promise.resolve()
+				.then(() => {
 
 					/**
 					 * The user was authenticated by the auth strategy, so get or create the user
  					 */
-					return getOrCreateCrowdUser(crowdUserInfo)
-						.then(() => { return crowdUserInfo; } );
+					return getOrCreateCrowdUser(crowdUserInfo);
 
 				})
-				.then((crowdUserInfo) => {
+				.then(() => {
 
 					/**
 					 * Sync the user groups
 					 */
-					return syncCrowdUserGroups(crowdUserInfo)
-						.then(() => { return crowdUserInfo; });
+					return syncCrowdUserGroups(crowdUserInfo);
 
 				})
-				.then((crowdUserInfo) => {
+				.then(() => {
 
 					// Authenticate the user and create the session information
 					return crowdClient.session.createUnvalidated(crowdUserInfo.username);
@@ -197,6 +214,7 @@ module.exports = function(crowdClient, authStrategy, config) {
 		allSettled: allSettled,
 		nodePromiseResolver: nodePromiseResolver,
 
+		validateCrowdUserInfo: validateCrowdUserInfo,
 		initializeConfig: initializeConfig,
 		defaultPasswordStrategy: defaultPasswordStrategy,
 		subtractLists: subtractLists,

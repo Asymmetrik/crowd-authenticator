@@ -29,34 +29,28 @@ describe('Crowd Authenticator', () => {
 			defaultGroups: [ 'default' ],
 			groupPrefix: 'p:'
 		};
-		let authStrategy = {
-			getAuthInfo: (authId) => {
-				return new Promise((resolve) => {
-					resolve({
-						firstname: 'Test',
-						lastname: 'User',
-						displayname: 'Test User',
-						email: 'test@email.com',
-						username: authId,
-						groups: [ 'one', 'two' ]
-					});
-				});
-			}
+		let crowdUserInfo = {
+			firstname: 'Test',
+			lastname: 'User',
+			displayname: 'Test User',
+			email: 'test@email.com',
+			username: 'test',
+			groups: [ 'one', 'two' ]
 		};
 
-		let crowdAuthenticator = CrowdAuthenticator(crowdClient, authStrategy, config);
-		return crowdAuthenticator.authenticate('test')
+		let crowdAuthenticator = CrowdAuthenticator(crowdClient, config);
+		return crowdAuthenticator.authenticate(crowdUserInfo)
 			.catch((err) => {
 				console.log(err);
 			})
 			.then(() => {
 
-				return crowdClient.user.get('test')
+				return crowdClient.user.get(crowdUserInfo.username)
 					.then((user) => {
 						should.exist(user);
-						should(user.username).equal('test');
+						should(user.username).equal(crowdUserInfo.username);
 
-						return crowdClient.user.groups.list('test');
+						return crowdClient.user.groups.list(crowdUserInfo.username);
 					})
 					.then((groups) => {
 						should(groups).be.an.Array();
