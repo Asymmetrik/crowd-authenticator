@@ -9,16 +9,20 @@ describe('Crowd Authenticator', () => {
 	let crowdClient = new CrowdClient(require('../crowdconfig'));
 
 	function clearAll() {
-		return crowdClient.user.remove('test')
-			.catch(() => {})
+		return Promise.resolve(() => {
+				return crowdClient.user.remove('test');
+			}).catch(() => {})
+			.then(() => {
+				return crowdClient.user.remove(encodeURIComponent('test / = , .'));
+			}).catch(() => {})
 			.then(() => {
 				let crowdAuthenticator = CrowdAuthenticator();
-				let promises = [ 'p:one', 'p:two', 'default'].map((g) => {
-					return crowdClient.group.remove(g).catch(() => {});
+				let promises = [ 'p:one', 'p:two', 'default', 'p:/ = . ,'].map((g) => {
+					return crowdClient.group.remove(encodeURIComponent(g)).catch(() => {});
 				})
 					.map(crowdAuthenticator.allSettled);
 				return Promise.all(promises);
-			});
+			}).catch(() => {});
 	}
 
 	beforeEach(clearAll);
@@ -40,9 +44,6 @@ describe('Crowd Authenticator', () => {
 
 		let crowdAuthenticator = CrowdAuthenticator(crowdClient, config);
 		return crowdAuthenticator.authenticate(crowdUserInfo)
-			.catch((err) => {
-				console.log(err);
-			})
 			.then(() => {
 
 				return crowdClient.user.get(crowdUserInfo.username)
@@ -61,6 +62,39 @@ describe('Crowd Authenticator', () => {
 			});
 	});
 
+	it('should authenticate a user with a bunch of characters that need to be escaped', () => {
+		let config = {
+			defaultGroups: [ 'default' ],
+			groupPrefix: 'p:'
+		};
+		let crowdUserInfo = {
+			firstname: 'Test',
+			lastname: 'User',
+			displayname: 'Test User',
+			email: 'test@email.com',
+			username: 'test / = , .',
+			groups: [ 'one', 'two', '/ = . ,' ]
+		};
+
+		let crowdAuthenticator = CrowdAuthenticator(crowdClient, config);
+		return crowdAuthenticator.authenticate(crowdUserInfo)
+			.then(() => {
+
+				return crowdClient.user.get(encodeURIComponent(crowdUserInfo.username))
+					.then((user) => {
+						should.exist(user);
+						should(user.username).equal(crowdUserInfo.username);
+
+						return crowdClient.user.groups.list(encodeURIComponent(crowdUserInfo.username));
+					})
+					.then((groups) => {
+						should(groups).be.an.Array();
+						should(groups).have.length(4);
+						should(groups).containDeep([ 'p:one', 'p:two', 'p:/ = . ,', 'default' ]);
+					});
+
+			});
+	});
 
 });
 

@@ -100,7 +100,7 @@ module.exports = function(crowdClient, config) {
 
 	let getOrCreateCrowdUser = (crowdUserInfo) => {
 
-		return crowdClient.user.get(crowdUserInfo.username, true)
+		return crowdClient.user.get(encodeURIComponent(crowdUserInfo.username), true)
 			.catch((err) => {
 
 				// If it's the user not found error, create the user
@@ -123,7 +123,7 @@ module.exports = function(crowdClient, config) {
 	let syncCrowdUserGroups = (crowdUserInfo) => {
 
 		// Get all of the user groups from crowd
-		return crowdClient.user.groups.list(crowdUserInfo.username)
+		return crowdClient.user.groups.list(encodeURIComponent(crowdUserInfo.username))
 			.then((groups) => {
 
 				let crowdGroups = groups || [];
@@ -156,10 +156,10 @@ module.exports = function(crowdClient, config) {
 					.then(() => {
 
 						let addGroupPromises = toAdd.map((g) => {
-							return crowdClient.user.groups.add(crowdUserInfo.username, g);
+							return crowdClient.user.groups.add(encodeURIComponent(crowdUserInfo.username), g);
 						});
 						addGroupPromises = addGroupPromises.concat(toRemove.map((g) => {
-							return crowdClient.user.groups.remove(crowdUserInfo.username, g);
+							return crowdClient.user.groups.remove(encodeURIComponent(crowdUserInfo.username), g);
 						}));
 
 						return Promise.all(addGroupPromises.map(allSettled));
