@@ -9,7 +9,8 @@ describe('Crowd Authenticator', () => {
 	let crowdClient = new CrowdClient(require('../crowdconfig'));
 
 	function clearAll() {
-		return Promise.resolve(() => {
+		return Promise.resolve()
+			.then(() => {
 				return crowdClient.user.remove('test');
 			}).catch(() => {})
 			.then(() => {
@@ -18,11 +19,12 @@ describe('Crowd Authenticator', () => {
 			.then(() => {
 				let crowdAuthenticator = CrowdAuthenticator();
 				let promises = [ 'p:one', 'p:two', 'default', 'p:/ = . ,'].map((g) => {
-					return crowdClient.group.remove(encodeURIComponent(g)).catch(() => {});
-				})
+						return crowdClient.group.remove(encodeURIComponent(g)).catch(() => {});
+					})
 					.map(crowdAuthenticator.allSettled);
+
 				return Promise.all(promises);
-			}).catch(() => {});
+			});
 	}
 
 	beforeEach(clearAll);
