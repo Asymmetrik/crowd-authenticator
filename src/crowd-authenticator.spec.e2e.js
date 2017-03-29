@@ -82,12 +82,12 @@ describe('Crowd Authenticator', () => {
 		return crowdAuthenticator.authenticate(crowdUserInfo)
 			.then(() => {
 
-				return crowdClient.user.get(encodeURIComponent(crowdUserInfo.username))
+				return crowdClient.user.get(crowdUserInfo.username)
 					.then((user) => {
 						should.exist(user);
 						should(user.username).equal(crowdUserInfo.username);
 
-						return crowdClient.user.groups.list(encodeURIComponent(crowdUserInfo.username));
+						return crowdClient.user.groups.list(crowdUserInfo.username);
 					})
 					.then((groups) => {
 						should(groups).be.an.Array();
